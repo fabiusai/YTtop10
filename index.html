@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generatore Report YouTube</title>
+    <link rel="icon" href="favicon.ico">
+    <!-- Libreria per esportare l'HTML in Immagine PNG -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        /* IMPORTAZIONE FONT */
+        @font-face { 
+            font-family: 'Avenir Next LT Pro'; 
+            src: url('https://cdn.jsdelivr.net/gh/hung1001/font-awesome-pro@4cac1a6/fonts/AvenirNextLTPro-Regular.woff2') format('woff2'); 
+            font-weight: normal; 
+        }
+        @font-face { 
+            font-family: 'Avenir Next LT Pro'; 
+            src: url('https://cdn.jsdelivr.net/gh/hung1001/font-awesome-pro@4cac1a6/fonts/AvenirNextLTPro-Bold.woff2') format('woff2'); 
+            font-weight: bold; 
+        }
+
+        /* VARIABILI COLORI DAL UI-KIT */
+        :root {
+            --brand-blu: #0047BB;
+            --brand-giallo: #EEDC00;
+            --brand-grigio-1: #3C3C3B;
+            --brand-grigio-2: #706F6F;
+            --brand-grigio-3: #C0C0C0;
+            --brand-celeste: #3D85FF;
+            --brand-bianco: #FFFFFF;
+            
+            --bg-app: #f4f6f8;
+            --bg-card: #FFFFFF; 
+            --text-main: var(--brand-grigio-1);
+            --border-light: #e2e8f0;
+            --border-header: #0047BB;
+        }
+
+        body {
+            font-family: 'Avenir Next LT Pro', "Segoe UI", sans-serif;
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* CONTROLLI UI */
+        .controls-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            width: 100%;
+            max-width: 1300px;
+            box-sizing: border-box;
+        }
+
+        .btn-primary {
+            background: var(--brand-blu);
+            color: var(--brand-bianco);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: transform 0.1s;
+            margin-left: 10px;
+        }
+        
+        .btn-primary:active {
+            transform: translateY(1px);
+        }
+
+        input[type="file"] {
+            font-family: inherit;
+            padding: 5px;
+        }
+
+        .hint {
+            font-size: 15px;
+            color: var(--brand-grigio-2);
+            margin-top: 15px;
+            line-height: 1.4;
+        }
+
+        /* WRAPPER */
+        .canvas-wrapper {
+            width: 100%;
+            max-width: 1300px;
+            overflow-x: auto;
+            display: flex;
+            justify-content: center;
+            background-image: linear-gradient(45deg, #ccc 25%, transparent 25%), 
+                              linear-gradient(135deg, #ccc 25%, transparent 25%),
+                              linear-gradient(45deg, transparent 75%, #ccc 75%),
+                              linear-gradient(135deg, transparent 75%, #ccc 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 0, 10px -10px, 0px 10px; 
+            border: 1px solid #ddd;
+        }
+
+        /* IL CONTAINER GRAFICO REALE */
+        #graphicContainer {
+            width: 1300px;
+            height: 1452px;
+            min-width: 1300px;
+            min-height: 1452px;
+            background-color: var(--brand-bianco); 
+            box-sizing: border-box;
+            padding: 70px 20px; 
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* TESTATA - GRIGLIA COMPATTATA */
+        .header-grid {
+            display: grid;
+            grid-template-columns: 38px 190px 1fr 190px 190px 190px;
+            /* MODIFICA: Bordo ridotto a 2px */
+            border-bottom: 2px solid var(--border-header);
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+            align-items: end;
+            gap: 12px; 
+        }
+
+        .header-title {
+            grid-column: 1 / 4;
+            color: var(--brand-blu);
+            font-size: 46px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: -0.5px;
+        }
+
+        .header-col {
+            color: var(--brand-blu);
+            font-size: 24px;
+            text-align: center;
+            line-height: 1.2;
+            font-weight: bold;
+        }
+
+        /* CONTAINER DELLE RIGHE */
+        #rowsContainer {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            justify-content: space-between;
+        }
+
+        /* STILE DELLE SINGOLE RIGHE - GRIGLIA COMPATTATA */
+        .data-row {
+            display: grid;
+            grid-template-columns: 38px 190px 1fr 190px 190px 190px;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #EDF2F7;
+            gap: 12px; 
+        }
+        
+        .data-row:last-child {
+            border-bottom: none;
+        }
+
+        /* NUMERO CLASSIFICA */
+        .col-rank {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--brand-grigio-1);
+            text-align: left;
+            padding-left: 2px;
+        }
+
+        /* CONTAINER COVER */
+        .thumb-container {
+            width: 190px;
+            height: 107px; 
+            border-radius: 8px;
+            overflow: hidden; 
+            position: relative;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            cursor: pointer;
+            background-color: #f0f0f0; 
+        }
+
+        .col-thumb {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; 
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%); 
+        }
+
+        /* TITOLO DEL VIDEO */
+        .col-title {
+            color: var(--brand-blu);
+            font-size: 32px; 
+            padding-right: 5px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2; 
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.2;
+            cursor: text; 
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .col-title:focus {
+            outline: 1px dashed var(--brand-celeste);
+            background-color: rgba(240,248,255,0.7); 
+        }
+
+        .col-metric {
+            font-size: 32px;
+            color: var(--brand-grigio-1);
+            text-align: center;
+        }
+        
+        .hidden-file-input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls-card">
+        <h2>Carica Dati YouTube (CSV)</h2>
+        <input type="file" id="csvInput" accept=".csv" />
+        <button class="btn-primary" onclick="exportToImage()">Scarica Immagine PNG (Trasparente)</button>
+        <div class="hint">
+            <strong>Suggerimento:</strong> Clicca sulle miniature per sostituirle e <strong>clicca sul testo di un titolo per modificarlo</strong> prima di scaricare l'immagine.
+        </div>
+    </div>
+
+    <div class="canvas-wrapper">
+        <div id="graphicContainer">
+            <div class="header-grid">
+                <div class="header-title">VIDEO PIÙ POPOLARI</div>
+                <div class="header-col">Durata Media<br>Visualizzazioni</div>
+                <div class="header-col">% Compl.<br>Visualizzazioni</div>
+                <div class="header-col">Visualizzazioni</div>
+            </div>
+            
+            <div id="rowsContainer">
+                <!-- Le righe verranno iniettate qui dal JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // PARSER CSV
+        function parseCSVLine(text) {
+            let result = [];
+            let currentField = '';
+            let insideQuotes = false;
+
+            for (let i = 0; i < text.length; i++) {
+                let char = text[i];
+                if (char === '"') {
+                    if (insideQuotes && i + 1 < text.length && text[i + 1] === '"') {
+                        currentField += '"';
+                        i++; 
+                    } else {
+                        insideQuotes = !insideQuotes; 
+                    }
+                } else if (char === ',' && !insideQuotes) {
+                    result.push(currentField);
+                    currentField = '';
+                } else {
+                    currentField += char;
+                }
+            }
+            result.push(currentField);
+            return result;
+        }
+
+        // FORMATTAZIONI
+        function formatViews(viewsStr) {
+            let v = parseFloat(viewsStr);
+            if (isNaN(v)) return viewsStr;
+            if (v >= 1000000) {
+                let val = (v / 1000000).toFixed(2);
+                val = parseFloat(val).toString();
+                return val.replace('.', ',') + ' M';
+            } else if (v >= 1000) {
+                let val = (v / 1000).toFixed(1);
+                val = parseFloat(val).toString();
+                return val.replace('.', ',') + ' K';
+            } else {
+                return v.toString();
+            }
+        }
+
+        function formatDuration(durationStr) {
+            if (!durationStr) return "0:00";
+            let parts = durationStr.split(':');
+            if (parts.length === 3) {
+                let h = parseInt(parts[0], 10);
+                let m = parseInt(parts[1], 10);
+                let s = parts[2];
+                if (h === 0) {
+                    return m + ":" + s;
+                } else {
+                    return h + ":" + (m < 10 ? "0" + m : m) + ":" + s;
+                }
+            }
+            return durationStr;
+        }
+
+        function formatPercent(pctStr) {
+            let p = parseFloat(pctStr);
+            if (isNaN(p)) return pctStr;
+            let val = p.toFixed(1);
+            val = parseFloat(val).toString();
+            return val.replace('.', ',') + '%';
+        }
+
+        // GENERAZIONE TABELLA
+        document.getElementById('csvInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const text = event.target.result;
+                const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+                
+                const dataRows = [];
+                for(let i = 2; i < lines.length && dataRows.length < 10; i++) {
+                    let parsedRow = parseCSVLine(lines[i]);
+                    if (parsedRow.length >= 7) {
+                        dataRows.push(parsedRow);
+                    }
+                }
+                renderTable(dataRows);
+            };
+            reader.readAsText(file);
+        });
+
+        function renderTable(rows) {
+            const container = document.getElementById('rowsContainer');
+            container.innerHTML = ''; 
+            
+            rows.forEach((row, index) => {
+                let videoId = row[0] ? row[0].trim() : "";
+                let title = row[1] ? row[1].trim() : "Titolo non disponibile";
+                let views = row[4] ? row[4].trim() : "0";
+                let duration = row[5] ? row[5].trim() : "0:00";
+                let percent = row[6] ? row[6].trim() : "0";
+
+                let thumbUrl = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+
+                let rowHtml = `
+                    <div class="data-row">
+                        <div class="col-rank">${index + 1}</div>
+                        <div>
+                            <input type="file" id="file-upload-${index}" class="hidden-file-input" accept="image/*" onchange="handleImageChange(event, ${index})">
+                            <div class="thumb-container" onclick="triggerImageUpload(${index})" title="Clicca per sostituire l'immagine">
+                                <img src="${thumbUrl}" alt="Cover Video" id="thumb-${index}" class="col-thumb">
+                            </div>
+                        </div>
+                        <div class="col-title" contenteditable="true" spellcheck="false" title="Clicca per modificare il titolo">${title}</div>
+                        <div class="col-metric">${formatDuration(duration)}</div>
+                        <div class="col-metric">${formatPercent(percent)}</div>
+                        <div class="col-metric">${formatViews(views)}</div>
+                    </div>
+                `;
+                container.innerHTML += rowHtml;
+            });
+        }
+
+        // GESTIONE FALLBACK IMMAGINE MANUALE
+        function triggerImageUpload(index) {
+            document.getElementById('file-upload-' + index).click();
+        }
+
+        function handleImageChange(event, index) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('thumb-' + index).src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // ESPORTAZIONE PNG
+        function exportToImage() {
+            if(document.activeElement) {
+                document.activeElement.blur();
+            }
+
+            const container = document.getElementById('graphicContainer');
+            
+            container.style.backgroundColor = 'transparent';
+            
+            html2canvas(container, {
+                scale: 1, 
+                useCORS: true, 
+                allowTaint: true,
+                backgroundColor: null 
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'Report_YouTube_Popolari_Trasparente.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }).catch(err => {
+                alert("Si è verificato un errore durante l'esportazione.");
+                console.error(err);
+            }).finally(() => {
+                container.style.backgroundColor = ''; 
+            });
+        }
+    </script>
+</body>
+</html>
